@@ -1,4 +1,4 @@
-Created by Ning An (aning003@gmail.com or anning@scu.edu.cn)
+Created by Ning An (anning@scu.edu.cn)
 
 October, 2021
 
