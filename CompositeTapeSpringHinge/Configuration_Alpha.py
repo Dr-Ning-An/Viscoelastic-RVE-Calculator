@@ -18,7 +18,7 @@ from connectorBehavior import *
 #############################################################################################################################
 # Created by Ning An
 # 2019/12
-# http://www.anning003.com/create-virtual-nodes
+# http://www.anning.me/create-virtual-nodes
 # Created in Abaqus Version 2017
 #----------------------------------------------------
 # Function for creating virtual nodes
@@ -110,9 +110,14 @@ mdb.models['Model-1'].parts['Part-1'].PartitionFaceByDatumPlane(datumPlane=
 mdb.models['Model-1'].Material(name='Material-1')
 mdb.models['Model-1'].materials['Material-1'].Density(table=((1.58076e-09, ), 
     ))
-mdb.models['Model-1'].materials['Material-1'].Elastic(table=((1.5032E+05, 8.06E+03, 
-    8.06E+03, 0.24, 0.24, 0.4, 3.57594E+03, 3.57594E+03, 2.88046E+03), ), type=
-    ENGINEERING_CONSTANTS)
+mdb.models['Model-1'].materials['Material-1'].Elastic(table=(
+    (150.93E3, 9.99E3, 9.99E3, 0.24, 0.24, 0.4, 4.58E3, 4.58E3, 3.58E3, 0.0), 
+    (149.97E3, 6.57E3, 6.57E3, 0.24, 0.24, 0.4, 2.84E3, 2.84E3, 2.35E3, 2.0),
+    (149.58E3, 4.29E3, 4.29E3, 0.24, 0.24, 0.4, 1.77E3, 1.77E3, 1.54E3, 4.0),
+    (149.50E3, 3.73E3, 3.73E3, 0.24, 0.24, 0.4, 1.52E3, 1.52E3, 1.34E3, 6.0)), type=
+    ENGINEERING_CONSTANTS, temperatureDependency=ON)
+
+
 mdb.models['Model-1'].CompositeShellSection(idealization=NO_IDEALIZATION, 
     integrationRule=SIMPSON, layup=(SectionLayer(thickness=0.187, 
     orientAngle=45.0, material='Material-1', plyName='1'), SectionLayer(
@@ -137,7 +142,9 @@ mdb.models['Model-1'].rootAssembly.Instance(dependent=ON, name='Part-1-1',
 mdb.models['Model-1'].ExplicitDynamicsStep(improvedDtMethod=ON, name='Step-1', 
     previous='Initial')
 mdb.models['Model-1'].ExplicitDynamicsStep(improvedDtMethod=ON, name='Step-2', 
-    previous='Step-1')
+    previous='Step-1', timePeriod=0.2)
+mdb.models['Model-1'].ExplicitDynamicsStep(improvedDtMethod=ON, name='Step-3', 
+    previous='Step-2')
 mdb.models['Model-1'].FieldOutputRequest(createStepName='Step-1', name=
     'F-Output-1', timeInterval=0.005, variables=('S', 'LE', 'U', 'UR', 'V', 'RF', 'RM'))
 mdb.models['Model-1'].HistoryOutputRequest(createStepName='Step-1', name=
@@ -197,7 +204,9 @@ mdb.models['Model-1'].DisplacementBC(amplitude='Amp-1', createStepName='Step-1'
     , distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name=
     'BC-2', region=mdb.models['Model-1'].rootAssembly.sets['Ref-2'], u1=0.0, u2=UNSET, 
     u3=UNSET, ur1=-pi, ur2=0.0, ur3=0.0)
-mdb.models['Model-1'].boundaryConditions['BC-2'].deactivate('Step-2')
+mdb.models['Model-1'].boundaryConditions['BC-2'].setValuesInStep(stepName=
+    'Step-2', u2=0.0, u3=0.0)
+mdb.models['Model-1'].boundaryConditions['BC-2'].deactivate('Step-3')
 
 mdb.models['Model-1'].rootAssembly.Surface(name='Surf-All', side1Faces=
     mdb.models['Model-1'].rootAssembly.instances['Part-1-1'].faces)
@@ -206,8 +215,17 @@ mdb.models['Model-1'].Pressure(amplitude=UNSET, createStepName='Step-1',
     refPoint=mdb.models['Model-1'].rootAssembly.sets['Ref-1'], region=
     mdb.models['Model-1'].rootAssembly.surfaces['Surf-All'])
 
+mdb.models['Model-1'].rootAssembly.Set(faces=mdb.models['Model-1'].rootAssembly.instances['Part-1-1'].faces, name='Set-All')
+mdb.models['Model-1'].Temperature(createStepName='Initial', 
+    crossSectionDistribution=CONSTANT_THROUGH_THICKNESS, distributionType=
+    UNIFORM, magnitudes=(0.0, ), name='Predefined Field-1', region=
+    mdb.models['Model-1'].rootAssembly.sets['Set-All'])
+mdb.models['Model-1'].predefinedFields['Predefined Field-1'].setValuesInStep(
+    magnitudes=(6.0, ), stepName='Step-2')
+
+
 mdb.models['Model-1'].parts['Part-1'].seedPart(deviationFactor=0.1, 
-    minSizeFactor=0.1, size=5.0)
+    minSizeFactor=0.1, size=6.0)
 mdb.models['Model-1'].parts['Part-1'].setMeshControls(elemShape=QUAD, algorithm=MEDIAL_AXIS, regions=
     mdb.models['Model-1'].parts['Part-1'].faces)
 mdb.models['Model-1'].parts['Part-1'].generateMesh()
@@ -220,7 +238,7 @@ mdb.models['Model-1'].parts['Part-1'].setElementType(elemTypes=(ElemType(
 
 mdb.models['Model-1'].rootAssembly.regenerate()
 
-jobName = "CSTH_1_year"
+jobName = "CTSH_24_month"
 mdb.Job(explicitPrecision=DOUBLE_PLUS_PACK, model='Model-1', name=jobName, 
     nodalOutputPrecision=FULL, numCpus=12, numDomains=12)
 mdb.saveAs(pathName=jobName)
@@ -235,7 +253,7 @@ mdb.jobs[jobName].waitForCompletion()
 ## http://www.anning003.com/extract-reaction-force/
 ##############################################################
 
-stepName = 'Step-2'
+stepName = 'Step-3'
 outputSetName = 'Ref-2'
 
 from odbAccess import*
